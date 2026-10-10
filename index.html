@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Play Rikiki, the Belgian trick-taking card game, against three self-trained AI players. Runs entirely in your browser.">
+<style>body { margin: 0; } [hidden] { display: none !important; }</style>
+<title>Rikiki Against the AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: a card room. The felt table holds the three AI players and the trick; your hand sits in a tray under it; the scorer's notebook (coach, scores, rounds) runs alongside. */
+  :root {
+    --bg: #eef0eb; --surface: #fbfbf8; --fg: #17201b; --fg-2: #4f5852; --muted: #858c86; --line: #dcdfd7;
+    --felt: #1f5d3f; --felt-deep: #143f2b; --felt-rim: #0d2c1e; --on-felt: #f3f6f2;
+    --gold: #e9b949; --gold-ink: #241a00; --chosen: #c98a06; --bar: #b9beb6; --neg: #c2463b; --pos: #2f7d4f;
+    --card: #fffefa; --card-ink: #1b1b1b; --card-red: #c8102e; --back-a: #9b2335; --back-b: #7d1c2a;
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0e1210; --surface: #161b18; --fg: #edf1ec; --fg-2: #bcc3bc; --muted: #868d87; --line: #29302b;
+    --felt: #1c5238; --felt-deep: #113524; --felt-rim: #08180f; --chosen: #e9b949; --bar: #4c534d; --neg: #e0675c; --pos: #5fbf86;
+    --card: #f4f2ea; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg: #0e1210; --surface: #161b18; --fg: #edf1ec; --fg-2: #bcc3bc; --muted: #868d87; --line: #29302b;
+    --felt: #1c5238; --felt-deep: #113524; --felt-rim: #08180f; --chosen: #e9b949; --bar: #4c534d; --neg: #e0675c; --pos: #5fbf86;
+    --card: #f4f2ea; color-scheme: dark; }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: 18px; padding-block: 20px 40px; display: grid; gap: 16px; }
+  h1 { font-family: var(--display); font-size: clamp(26px, 4vw, 38px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; margin: 0; }
+  p { margin: 0; }
+  button, select, input { font: inherit; color: var(--fg); }
+  button:focus-visible, select:focus-visible, input:focus-visible, .pc:focus-visible { outline: 2px solid var(--chosen); outline-offset: 2px; }
+
+  .top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+  .top .sub { color: var(--fg-2); font-size: 14px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 7px 13px; cursor: pointer; }
+  .btn.primary { background: var(--felt); color: var(--on-felt); border-color: var(--felt); font-weight: 600; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .toggle { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--fg-2); cursor: pointer; }
+
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; }
+  @media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+  .table { position: relative; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 170px / 120px; background: radial-gradient(ellipse at 50% 45%, var(--felt) 0%, var(--felt-deep) 78%);
+           border: 12px solid var(--felt-rim); box-shadow: inset 0 0 50px rgba(0,0,0,.45); color: var(--on-felt); overflow: hidden; min-height: 300px; }
+  @media (max-width: 640px) { .table { aspect-ratio: 1 / 1; border-radius: 44px; border-width: 8px; } }
+  .seat { position: absolute; display: grid; gap: 4px; justify-items: center; transform: translate(-50%, -50%); }
+  .seat.s0 { left: 50%; top: 88%; } .seat.s1 { left: 13%; top: 50%; } .seat.s2 { left: 50%; top: 13%; } .seat.s3 { left: 87%; top: 50%; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(0,0,0,.35); font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .chip .tag { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; background: var(--gold); color: var(--gold-ink); }
+  .chip.you .tag { background: rgba(255,255,255,.2); color: var(--on-felt); }
+  .chip.turn { box-shadow: 0 0 0 2px var(--gold); }
+  .chip .dealer { width: 18px; height: 18px; border-radius: 50%; background: var(--on-felt); color: var(--felt-rim); font-size: 10px; display: grid; place-items: center; font-weight: 700; }
+  .stat { font-size: 12px; opacity: .92; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stat b { color: var(--gold); }
+  .backs { display: flex; height: 26px; }
+  .back { width: 16px; height: 24px; border-radius: 3px; background: repeating-linear-gradient(45deg, var(--back-a) 0 3px, var(--back-b) 3px 6px); border: 1px solid rgba(255,255,255,.8); margin-left: -7px; }
+  .back:first-child { margin-left: 0; }
+  .thinking { font-size: 11px; opacity: .8; height: 14px; }
+  .pc { width: 56px; height: 80px; border-radius: 7px; background: var(--card); color: var(--card-ink); border: 1px solid rgba(0,0,0,.25);
+        display: grid; place-items: center; font-weight: 600; font-size: 19px; line-height: 1.05; box-shadow: 0 1px 3px rgba(0,0,0,.3); flex: none; text-align: center; position: relative; }
+  .pc.red { color: var(--card-red); }
+  .trickzone { position: absolute; inset: 0; pointer-events: none; }
+  .tc { position: absolute; transform: translate(-50%, -50%); }
+  .tc.p0 { left: 50%; top: 63%; } .tc.p1 { left: 37%; top: 50%; } .tc.p2 { left: 50%; top: 37%; } .tc.p3 { left: 63%; top: 50%; }
+  .tc.win .pc { box-shadow: 0 0 0 3px var(--gold), 0 4px 12px rgba(0,0,0,.45); }
+  .tc .pc { animation: drop .18s ease-out; }
+  @keyframes drop { from { transform: scale(.85); opacity: .4; } to { transform: none; opacity: 1; } }
+  .trump { position: absolute; left: 5%; top: 8%; display: grid; gap: 4px; justify-items: center; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .trump .pc { transform: rotate(-7deg); width: 46px; height: 66px; font-size: 16px; }
+  .trump .none { font-size: 12px; text-transform: none; letter-spacing: 0; border: 2px dashed rgba(255,255,255,.5); border-radius: 6px; padding: 8px 6px; }
+  .roundinfo { position: absolute; right: 5%; top: 8%; text-align: right; font-size: 12px; opacity: .9; }
+  .roundinfo b { font-family: var(--display); font-size: 20px; display: block; }
+  .center-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; font-size: 13px; opacity: .85; max-width: 36%; }
+  .overlay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(8,24,15,.93); border-radius: 12px; padding: 14px 16px; width: min(400px, 84%); display: grid; gap: 10px; z-index: 3; }
+  .overlay h3 { margin: 0; font-family: var(--display); font-size: 19px; }
+  .overlay table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .overlay td, .overlay th { padding: 3px 4px; text-align: right; } .overlay td:first-child, .overlay th:first-child { text-align: left; }
+  .overlay th { font-weight: 500; opacity: .7; font-size: 11px; }
+  .overlay .pos { color: #7fdc9f; } .overlay .neg { color: #ff8f84; }
+  .overlay .btn { justify-self: end; background: var(--gold); color: var(--gold-ink); border-color: var(--gold); font-weight: 600; }
+  .loading { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); font-size: 12px; opacity: .85; }
+
+  .tray { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 10px; }
+  .msg { font-weight: 600; min-height: 22px; }
+  .msg small { font-weight: 400; color: var(--fg-2); }
+  .bids { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bids button { min-width: 46px; padding: 6px 8px 5px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-weight: 700; font-size: 16px; display: grid; justify-items: center; line-height: 1.1; }
+  .bids button small { font-size: 10px; font-weight: 600; color: var(--fg-2); }
+  .bids button.best { border-color: var(--chosen); box-shadow: 0 0 0 1px var(--chosen); }
+  .bids button:disabled { opacity: .35; cursor: default; }
+  .hand { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 16px; }
+  .hand .pc { cursor: default; transition: transform .1s; }
+  .hand .pc.legal { cursor: pointer; }
+  .hand .pc.legal:hover { transform: translateY(-7px); }
+  .hand .pc.dim { opacity: .4; }
+  .hand .pc .hint { position: absolute; bottom: -17px; left: -4px; right: -4px; font-size: 11px; font-weight: 700; color: var(--fg-2); text-align: center; }
+  .hand .pc .hint.best { color: var(--chosen); }
+  .err { color: var(--neg); font-size: 13px; min-height: 0; }
+  @media (max-width: 640px) {
+    .pc { width: 44px; height: 64px; font-size: 15px; }
+    .tc .pc { width: 40px; height: 58px; font-size: 14px; }
+    .seat.s1 { left: 4%; transform: translate(0, -50%); justify-items: start; top: 42%; }
+    .seat.s3 { left: auto; right: 4%; transform: translate(0, -50%); justify-items: end; top: 42%; }
+    .seat.s0 { top: 89%; } .seat.s2 { top: 17%; }
+    .tc.p0 { top: 73%; } .tc.p1 { left: 31%; top: 62%; } .tc.p2 { top: 49%; } .tc.p3 { left: 69%; top: 62%; }
+    .center-msg { display: none; }
+    .trump { left: 4%; top: 3%; } .roundinfo { right: 4%; top: 3%; }
+    .trump .pc { width: 34px; height: 48px; font-size: 12px; }
+  }
+
+  aside { display: grid; gap: 14px; min-width: 0; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+  .opts { display: grid; gap: 5px; }
+  .opt { display: grid; grid-template-columns: 40px 1fr 48px; gap: 8px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .opt .lab { display: flex; justify-content: center; font-weight: 700; font-size: 15px; }
+  .opt .lab .pc { width: 28px; height: 38px; font-size: 11px; border-radius: 4px; }
+  .opt .v { text-align: right; font-weight: 600; color: var(--fg-2); }
+  .opt.best .v { color: var(--fg); }
+  .opt .track { position: relative; height: 14px; }
+  .opt .track .zero { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); opacity: .6; }
+  .opt .track i { position: absolute; top: 2px; height: 10px; background: var(--bar); }
+  .opt.best .track i { background: var(--chosen); }
+  .opt .track i.p { border-radius: 0 4px 4px 0; } .opt .track i.n { border-radius: 4px 0 0 4px; }
+  .quiet { color: var(--fg-2); font-size: 14px; }
+  .note { font-size: 12px; color: var(--muted); }
+  table.sc { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .sc th, .sc td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+  .sc th:first-child, .sc td:first-child { text-align: left; }
+  .sc th { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .sc tr:last-child td { border-bottom: 0; }
+  .hist { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+  .pos { color: var(--pos); } .neg { color: var(--neg); }
+  .log { font-size: 12.5px; color: var(--fg-2); max-height: 180px; overflow: auto; display: grid; gap: 2px; }
+
+  dialog { border: 0; border-radius: 16px; padding: 0; background: var(--surface); color: var(--fg); width: min(460px, calc(100% - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  .dlg { padding: 18px; display: grid; gap: 12px; }
+  .dlg h3 { margin: 0; font-family: var(--display); font-size: 22px; }
+  .field { display: grid; grid-template-columns: 130px 1fr; gap: 10px; align-items: center; font-size: 14px; }
+  .field select, .field input { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+  .dlg .row { display: flex; justify-content: flex-end; gap: 8px; }
+  .rules { font-size: 14px; display: grid; gap: 8px; color: var(--fg-2); }
+  .rules b { color: var(--fg); }
+  @media (prefers-reduced-motion: reduce) { .tc .pc { animation: none; } .hand .pc { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Rikiki Against the AI</h1>
+      <p class="sub">You against three copies of the self-trained AI. It runs right here in your browser.</p>
+    </div>
+    <div class="actions">
+      <label class="toggle"><input type="checkbox" id="hints"> Coach</label>
+      <select id="speed" class="btn" aria-label="AI speed"><option value="1200">Slow AI</option><option value="700" selected>Normal AI</option><option value="250">Fast AI</option></select>
+      <button class="btn" id="rulesBtn">Rules</button>
+      <button class="btn primary" id="newBtn">New game</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <section aria-label="Card table">
+      <div class="table" id="table"></div>
+      <div class="tray">
+        <div class="msg" id="msg" aria-live="polite"></div>
+        <div class="bids" id="bids"></div>
+        <div class="hand" id="hand"></div>
+        <div class="err" id="err"></div>
+      </div>
+    </section>
+    <aside>
+      <div class="panel" id="coach"></div>
+      <div class="panel"><h2>Scores</h2><div id="scores"></div></div>
+      <div class="panel"><h2>Rounds</h2><div class="hist" id="hist"></div></div>
+      <div class="panel"><h2>Table talk</h2><div class="log" id="log"></div></div>
+    </aside>
+  </div>
+</div>
+
+<dialog id="newDlg"><form class="dlg" method="dialog" id="newForm">
+  <h3>New game</h3>
+  <div class="field"><label for="ngName">Your name</label><input id="ngName" maxlength="14" value="You"></div>
+  <div class="field"><label for="ngMax">Most cards</label><select id="ngMax"><option value="3">3 (7 rounds, quick)</option><option value="5">5 (9 rounds)</option><option value="7" selected>7 (13 rounds)</option><option value="10">10 (19 rounds)</option><option value="13">13 (25 rounds, full deck)</option></select></div>
+  <div class="field"><label for="ngSched">Order</label><select id="ngSched"><option value="up-down">1 up to most, back to 1</option><option value="down-up">Most down to 1, back up</option></select></div>
+  <div class="row"><button class="btn" value="cancel" id="ngCancel">Cancel</button><button class="btn primary" value="ok" id="ngGo">Deal</button></div>
+</form></dialog>
+
+<dialog id="rulesDlg"><form class="dlg" method="dialog">
+  <h3>How Rikiki works</h3>
+  <div class="rules">
+    <p>Each round everybody gets the same number of cards: 1, then 2, up to the maximum and back down. The next card of the deck is turned up and its suit is <b>trump</b>. When the whole deck is dealt there is no trump.</p>
+    <p><b>Bidding.</b> Starting left of the dealer, each player says how many tricks they will take. The dealer bids last and may not make the bids add up to the number of tricks, so somebody has to miss.</p>
+    <p><b>Playing.</b> The player left of the dealer leads. Follow the led suit if you can, otherwise play anything. The highest trump wins the trick, otherwise the highest card of the led suit. The winner leads the next trick.</p>
+    <p><b>Scoring.</b> Exactly right: <b>5 points + 3 per trick</b>. Wrong: <b>&minus;2 per trick</b> you are off.</p>
+    <p><b>Coach</b> shows the AI's estimate of your points this round for every bid or card you can play. It uses the same network as your opponents, from your seat.</p>
+  </div>
+  <div class="row"><button class="btn primary" value="ok">Got it</button></div>
+</form></dialog>
+
+<script src="rikiki_core.js"></script>
+<script>
+const R = window.Rikiki;
+const $ = (id) => document.getElementById(id);
+const SUITS = ["♣", "♦", "♥", "♠"], SUIT_NAMES = ["clubs", "diamonds", "hearts", "spades"];
+const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+const ctext = (c) => RANKS[R.rankOf(c)] + SUITS[R.suitOf(c)];
+const cardHTML = (c, cls = "", attrs = "") => `<span class="pc ${R.suitOf(c) === 1 || R.suitOf(c) === 2 ? "red" : ""} ${cls}" ${attrs} title="${RANKS[R.rankOf(c)]} of ${SUIT_NAMES[R.suitOf(c)]}">${RANKS[R.rankOf(c)]}<br>${SUITS[R.suitOf(c)]}</span>`;
+const sgn = (v, d = 1) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+const sgnI = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v);
+const AI_NAMES = ["Lies", "Bram", "Wout"];  // West, North, East
+const RULES = R.DEFAULT_RULES;
+const STORE = "rikiki_vs_ai_v1";
+
+let net = null, netError = null, G = null, timer = null;
+
+// ------------------------------------------------------------- game state
+function newGame(opts) {
+  const maxCards = +opts.maxCards || 7, schedule = opts.schedule || "up-down";
+  G = { names: [opts.name || "You", ...AI_NAMES], maxCards, schedule, sizes: R.roundSizes(maxCards, schedule),
+        roundIdx: -1, dealer: Math.floor(Math.random() * 4) - 1, totals: [0, 0, 0, 0], history: [], round: null, pause: null, log: [] };
+  nextRound();
+}
+function nextRound() {
+  G.roundIdx++; G.dealer = (G.dealer + 1) % 4;
+  G.round = new R.Round(RULES, G.sizes[G.roundIdx], G.dealer, Math.random);
+  G.pause = null;
+  const r = G.round;
+  say(`Round ${G.roundIdx + 1} of ${G.sizes.length}: ${r.nCards} card${r.nCards > 1 ? "s" : ""}, ${G.names[r.dealer]} deals, ${r.trumpCard == null ? "no trump" : "trump card " + ctext(r.trumpCard)}.`);
+}
+function say(t) { G.log.push(t); if (G.log.length > 80) G.log.shift(); }
+function save() { try { localStorage.setItem(STORE, JSON.stringify({ ...G, round: G.round.toState() })); } catch (e) {} }
+function restore(s) {
+  if (!s || !s.round || !s.sizes) return false;
+  G = { ...s, round: R.Round.fromState(RULES, s.round) };
+  if (G.pause === "trick") G.pause = G.round.phase === "done" ? "round" : null;
+  return true;
+}
+
+function afterPlay(winner) {
+  const r = G.round;
+  if (winner != null) {
+    say(`${G.names[winner]} take${winner === 0 && G.names[0] === "You" ? "" : "s"} the trick with ${ctext(r.lastTrick.find(([p]) => p === winner)[1])}.`);
+    G.pause = "trick";
+  }
+  if (r.phase === "done") {
+    const sc = r.scores();
+    sc.forEach((s, p) => G.totals[p] += s);
+    G.history.push({ n: r.nCards, bids: r.bids.slice(), won: r.tricksWon.slice(), scores: sc });
+    say("Round over: " + sc.map((s, p) => `${G.names[p]} ${sgnI(s)}`).join(", ") + ".");
+  }
+}
+
+// ------------------------------------------------------------- flow
+function schedule() {
+  clearTimeout(timer);
+  if (!G) return;
+  const r = G.round, speed = +$("speed").value;
+  if (G.pause === "trick") {
+    timer = setTimeout(() => { G.pause = r.phase === "done" ? (G.roundIdx >= G.sizes.length - 1 ? "over" : "round") : null; tick(); }, speed * 1.9);
+    return;
+  }
+  if (G.pause) return;  // waiting for a button
+  if (r.current !== 0 && net) timer = setTimeout(aiMove, speed);
+}
+function aiMove() {
+  const r = G.round, p = r.current;
+  if (G.pause || p === 0 || !net) return;
+  const { action } = net.choose(r, p);
+  if (r.phase === "bid") { r.bid(action); say(`${G.names[p]} bids ${action}.`); afterPlay(null); }
+  else afterPlay(r.play(action));
+  tick();
+}
+function tick() { save(); render(); schedule(); }
+function humanBid(v) { const r = G.round; if (G.pause || r.current !== 0 || r.phase !== "bid") return; r.bid(v); say(`${G.names[0]} bid${G.names[0] === "You" ? "" : "s"} ${v}.`); tick(); }
+function humanPlay(c) {
+  const r = G.round; if (G.pause || r.current !== 0 || r.phase !== "play") return;
+  if (!r.legalCards(0).includes(c)) { $("err").textContent = `You must follow ${SUIT_NAMES[r.leadSuit]} when you can.`; return; }
+  $("err").textContent = ""; afterPlay(r.play(c)); tick();
+}
+function continueRound() { if (G.pause === "round") { nextRound(); tick(); } }
+
+// ------------------------------------------------------------- render
+function render() {
+  const r = G.round, myTurn = !G.pause && r.current === 0 && r.phase !== "done";
+  const showTrick = G.pause && r.lastTrick && (G.pause === "trick" || G.pause === "round" || G.pause === "over") ? r.lastTrick : r.trick;
+  const winner = G.pause && r.lastTrick ? r.lastTrickWinner : null;
+  let h = `<div class="trump">Trump${r.trumpCard == null ? `<span class="none">None</span>` : cardHTML(r.trumpCard)}</div>`;
+  h += `<div class="roundinfo">Round ${G.roundIdx + 1} of ${G.sizes.length}<b>${r.nCards} card${r.nCards > 1 ? "s" : ""}</b></div>`;
+  for (let p = 0; p < 4; p++) {
+    const turn = !G.pause && r.current === p && r.phase !== "done";
+    const bid = r.bids[p] == null ? "&ndash;" : r.bids[p];
+    h += `<div class="seat s${p}"><span class="chip ${p === 0 ? "you" : ""} ${turn ? "turn" : ""}">${G.names[p]}<span class="tag">${p === 0 ? "you" : "AI"}</span>${r.dealer === p ? `<span class="dealer" title="Dealer">D</span>` : ""}</span>
+      <span class="stat">bid <b>${bid}</b> &middot; won <b>${r.tricksWon[p]}</b> &middot; ${G.totals[p]} pts</span>
+      ${p === 0 ? "" : `<div class="backs" aria-label="${r.hands[p].length} cards">${r.hands[p].map(() => `<span class="back"></span>`).join("")}</div><div class="thinking">${turn && net ? "thinking…" : ""}</div>`}</div>`;
+  }
+  h += `<div class="trickzone">${showTrick.map(([p, c]) => `<div class="tc p${p} ${winner === p ? "win" : ""}">${cardHTML(c)}</div>`).join("")}</div>`;
+  if (G.pause === "round" || G.pause === "over") {
+    const last = G.history[G.history.length - 1];
+    const order = [0, 1, 2, 3].sort((a, b) => G.totals[b] - G.totals[a]);
+    const over = G.pause === "over";
+    let title = over ? "Game over" : `Round ${G.roundIdx + 1} done`;
+    if (over) { const top = G.totals[order[0]]; const ws = order.filter((p) => G.totals[p] === top).map((p) => G.names[p]); title = ws.includes(G.names[0]) && ws.length === 1 ? "You win!" : `${ws.join(" & ")} win${ws.length > 1 ? "" : "s"}`; }
+    h += `<div class="overlay" role="dialog" aria-label="${title}"><h3>${title}</h3><table><tr><th>Player</th><th>Bid</th><th>Won</th><th>Round</th><th>Total</th></tr>` +
+      order.map((p) => `<tr><td>${G.names[p]}</td><td>${last.bids[p]}</td><td>${last.won[p]}</td><td class="${last.scores[p] > 0 ? "pos" : "neg"}">${sgnI(last.scores[p])}</td><td><b>${G.totals[p]}</b></td></tr>`).join("") +
+      `</table><button class="btn" id="ovBtn">${over ? "Play again" : "Next round"}</button></div>`;
+  } else if (!showTrick.length) {
+    const sum = r.bids.reduce((s, b) => s + (b ?? 0), 0);
+    h += `<div class="center-msg">${r.phase === "bid" ? `Bidding: ${sum} of ${r.nCards} trick${r.nCards > 1 ? "s" : ""} bid` : `${r.tricksWon.reduce((a, b) => a + b, 0)} of ${r.nCards} tricks played`}</div>`;
+  }
+  if (!net) h += `<div class="loading">${netError ? "Could not load the AI: " + netError : "Loading the AI (3 MB)…"}</div>`;
+  $("table").innerHTML = h;
+  const ov = $("ovBtn"); if (ov) ov.onclick = () => G.pause === "over" ? openNew() : continueRound();
+
+  // --- coach values for the human
+  const coachOn = $("hints").checked && myTurn && net;
+  const q = coachOn ? net.qValues(r, 0) : null;
+  const legal = r.phase === "bid" ? r.legalBids() : r.legalCards(0);
+  const best = q ? legal.reduce((m, a) => q[a] > q[m] ? a : m, legal[0]) : null;
+
+  // --- tray: message, bids, hand
+  let msg = "";
+  if (G.pause === "trick") msg = `${G.names[winner]} ${winner === 0 && G.names[0] === "You" ? "take" : "takes"} the trick.`;
+  else if (G.pause === "round") msg = "Round over.";
+  else if (G.pause === "over") msg = "Game over.";
+  else if (!myTurn) msg = `${G.names[r.current]} is ${r.phase === "bid" ? "bidding" : "playing"}…`;
+  else if (r.phase === "bid") {
+    const sum = r.bids.reduce((s, b) => s + (b ?? 0), 0), f = r.forbiddenBid();
+    msg = `How many tricks will you take? <small>Bids so far: ${sum} of ${r.nCards}.${f != null ? ` As dealer you may not bid ${f}.` : ""}</small>`;
+  } else {
+    const need = r.bids[0] - r.tricksWon[0];
+    msg = `Your card. <small>${need > 0 ? `You need ${need} more trick${need > 1 ? "s" : ""}.` : need === 0 ? "You have your tricks: try to lose the rest." : `You are ${-need} over your bid.`}</small>`;
+  }
+  $("msg").innerHTML = msg;
+  $("bids").innerHTML = myTurn && r.phase === "bid" ? [...Array(r.nCards + 1).keys()].map((b) =>
+    `<button data-bid="${b}" ${legal.includes(b) ? "" : "disabled"} class="${q && b === best ? "best" : ""}">${b}${q && legal.includes(b) ? `<small>${sgn(q[b])}</small>` : ""}</button>`).join("") : "";
+  document.querySelectorAll("[data-bid]").forEach((b) => b.onclick = () => humanBid(+b.dataset.bid));
+  const playable = myTurn && r.phase === "play";
+  $("hand").innerHTML = r.hands[0].map((c) => {
+    const ok = playable && legal.includes(c);
+    const hint = q && r.phase === "play" && ok ? `<span class="hint ${c === best ? "best" : ""}">${sgn(q[c])}</span>` : "";
+    return cardHTML(c, ok ? "legal" : (playable ? "dim" : ""), ok ? `role="button" tabindex="0" data-card="${c}" aria-label="Play ${RANKS[R.rankOf(c)]} of ${SUIT_NAMES[R.suitOf(c)]}"` : "").replace("</span>", hint + "</span>");
+  }).join("");
+  document.querySelectorAll("[data-card]").forEach((el) => {
+    el.onclick = () => humanPlay(+el.dataset.card);
+    el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); humanPlay(+el.dataset.card); } };
+  });
+
+  // --- coach panel
+  let ch = `<h2>Coach</h2>`;
+  if (!$("hints").checked) ch += `<p class="quiet">Switch on <b>Coach</b> to see how many points the AI expects you to score this round with each bid or card. It uses the same network as your opponents.</p>`;
+  else if (!net) ch += `<p class="quiet">Loading the AI…</p>`;
+  else if (!q) ch += `<p class="quiet">The coach speaks up when it is your turn.</p>`;
+  else {
+    const opts = legal.map((a) => [a, q[a]]);
+    if (r.phase === "play") opts.sort((a, b) => b[1] - a[1]);
+    const lo = Math.min(0, ...opts.map((o) => o[1])), hi = Math.max(0.5, ...opts.map((o) => o[1]));
+    const X = (v) => (v - lo) / (hi - lo) * 100;
+    ch += `<p class="quiet">Best ${r.phase === "bid" ? "bid" : "card"}: <b>${r.phase === "bid" ? best : ctext(best)}</b>, expected <b>${sgn(q[best])}</b> points this round.</p><div class="opts">` + opts.map(([a, v]) => {
+      const z = X(0), w = Math.abs(X(v) - z);
+      const bar = v >= 0 ? `<i class="p" style="left:${z}%;width:${Math.max(w, 1)}%"></i>` : `<i class="n" style="left:${z - w}%;width:${Math.max(w, 1)}%"></i>`;
+      return `<div class="opt ${a === best ? "best" : ""}"><span class="lab">${r.phase === "bid" ? a : cardHTML(a)}</span><span class="track"><span class="zero" style="left:${z}%"></span>${bar}</span><span class="v">${sgn(v)}</span></div>`;
+    }).join("") + `</div><p class="note">Estimates from the AI's point of view. It cannot see the other hands either.</p>`;
+  }
+  $("coach").innerHTML = ch;
+
+  // --- scores, history, log
+  const order = [0, 1, 2, 3].sort((a, b) => G.totals[b] - G.totals[a]);
+  $("scores").innerHTML = `<table class="sc"><tr><th>Player</th><th>Bid</th><th>Won</th><th>Total</th></tr>` + order.map((p) =>
+    `<tr><td>${p === 0 ? `<b>${G.names[p]}</b>` : G.names[p]}</td><td>${r.bids[p] ?? "&ndash;"}</td><td>${r.tricksWon[p]}</td><td><b>${G.totals[p]}</b></td></tr>`).join("") + `</table>`;
+  $("hist").innerHTML = G.history.length ? `<table class="sc"><tr><th>#</th>${G.names.map((n) => `<th>${n.slice(0, 6)}</th>`).join("")}</tr>` + G.history.map((hh, i) =>
+    `<tr><td>${i + 1} <span class="note">(${hh.n})</span></td>${hh.scores.map((s, p) => `<td title="bid ${hh.bids[p]}, won ${hh.won[p]}"><span class="${s > 0 ? "pos" : "neg"}">${sgnI(s)}</span></td>`).join("")}</tr>`).join("") + `</table>`
+    : `<p class="quiet">Finished rounds appear here.</p>`;
+  const log = $("log"); log.innerHTML = G.log.map((l) => `<div>${l}</div>`).join(""); log.scrollTop = log.scrollHeight;
+}
+
+// ------------------------------------------------------------- dialogs & controls
+function openNew() { clearTimeout(timer); $("ngName").value = G ? G.names[0] : "You"; $("newDlg").showModal(); }
+$("newForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const ok = e.submitter && e.submitter.id === "ngGo";
+  $("newDlg").close();
+  if (ok) { newGame({ name: $("ngName").value.trim() || "You", maxCards: $("ngMax").value, schedule: $("ngSched").value }); $("err").textContent = ""; }
+  tick();
+});
+$("newDlg").addEventListener("cancel", () => setTimeout(schedule, 0));
+$("newBtn").onclick = openNew;
+$("rulesBtn").onclick = () => $("rulesDlg").showModal();
+$("hints").onchange = () => { try { localStorage.setItem(STORE + "_coach", $("hints").checked ? "1" : "0"); } catch (e) {} render(); };
+$("speed").onchange = () => { try { localStorage.setItem(STORE + "_speed", $("speed").value); } catch (e) {} schedule(); };
+document.addEventListener("keydown", (e) => {
+  if (document.querySelector("dialog[open]")) return;
+  if ((e.key === "Enter" || e.key === " ") && G && (G.pause === "round")) { e.preventDefault(); continueRound(); }
+  if (/^[0-9]$/.test(e.key) && G && !G.pause && G.round.phase === "bid" && G.round.current === 0) humanBid(+e.key);
+});
+
+// ------------------------------------------------------------- boot
+function b64ToBuffer(t) { const bin = atob(t.trim()), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8.buffer; }
+function boot(hotData) {
+  try { $("hints").checked = localStorage.getItem(STORE + "_coach") === "1"; const sp = localStorage.getItem(STORE + "_speed"); if (sp) $("speed").value = sp; } catch (e) {}
+  let saved = hotData && hotData.G ? hotData.G : null;
+  if (!saved) { try { saved = JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { saved = null; } }
+  if (!(saved && saved.pause !== "over" && restore(saved))) newGame({ name: "You", maxCards: 7, schedule: "up-down" });
+  render();
+  Promise.all([fetch("weights_manifest.json").then((r) => r.json()), fetch("weights_f16.txt").then((r) => { if (!r.ok) throw new Error("weights file returned " + r.status); return r.text(); }).then(b64ToBuffer)])
+    .then(([m, buf]) => { net = new R.Net(m, buf); render(); schedule(); })
+    .catch((e) => { netError = String(e.message || e); render(); });
+}
+window.claude?.hot?.snapshot?.(() => ({ G: G ? { ...G, round: G.round.toState() } : null }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? null);
+</script>
+</body>
+</html>
