@@ -1,6 +1,6 @@
 # Rikiki against the AI
 
-Play **Rikiki**, the Belgian trick-taking card game (a version of "Oh Hell"), against three AI players
+Play **Rikiki**, the Belgian trick-taking card game (interface in French: atout = trump, pli = trick) (a version of "Oh Hell"), against three AI players
 that taught themselves the game through self-play reinforcement learning.
 
 **Play:** https://deepneurals.github.io/rikiki-ai/

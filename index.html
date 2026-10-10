@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Play Rikiki, the Belgian trick-taking card game, against three self-trained AI players. Runs entirely in your browser.">
+<meta name="description" content="Jouez au Rikiki, le jeu de plis belge, contre trois IA qui ont appris seules à jouer. Tout tourne dans votre navigateur.">
 <style>body { margin: 0; } [hidden] { display: none !important; }</style>
-<title>Rikiki Against the AI</title>
+<title>Rikiki contre l'IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -112,7 +112,8 @@
     .seat.s0 { top: 89%; } .seat.s2 { top: 17%; }
     .tc.p0 { top: 73%; } .tc.p1 { left: 31%; top: 62%; } .tc.p2 { top: 49%; } .tc.p3 { left: 69%; top: 62%; }
     .center-msg { display: none; }
-    .trump { left: 4%; top: 3%; } .roundinfo { right: 4%; top: 3%; }
+    .trump { left: 4%; top: 3%; } .roundinfo { right: 5%; top: auto; bottom: 4%; font-size: 11px; }
+    .roundinfo b { font-size: 15px; }
     .trump .pc { width: 34px; height: 48px; font-size: 12px; }
   }
 
@@ -156,19 +157,19 @@
 <div class="wrap">
   <div class="top">
     <div>
-      <h1>Rikiki Against the AI</h1>
-      <p class="sub">You against three copies of the self-trained AI. It runs right here in your browser.</p>
+      <h1>Rikiki contre l'IA</h1>
+      <p class="sub">Vous contre trois copies de l'IA qui a appris seule à jouer. Elle tourne directement dans votre navigateur.</p>
     </div>
     <div class="actions">
       <label class="toggle"><input type="checkbox" id="hints"> Coach</label>
-      <select id="speed" class="btn" aria-label="AI speed"><option value="1200">Slow AI</option><option value="700" selected>Normal AI</option><option value="250">Fast AI</option></select>
-      <button class="btn" id="rulesBtn">Rules</button>
-      <button class="btn primary" id="newBtn">New game</button>
+      <select id="speed" class="btn" aria-label="Vitesse de l'IA"><option value="1200">IA lente</option><option value="700" selected>IA normale</option><option value="250">IA rapide</option></select>
+      <button class="btn" id="rulesBtn">Règles</button>
+      <button class="btn primary" id="newBtn">Nouvelle partie</button>
     </div>
   </div>
 
   <div class="main">
-    <section aria-label="Card table">
+    <section aria-label="Table de jeu">
       <div class="table" id="table"></div>
       <div class="tray">
         <div class="msg" id="msg" aria-live="polite"></div>
@@ -180,52 +181,56 @@
     <aside>
       <div class="panel" id="coach"></div>
       <div class="panel"><h2>Scores</h2><div id="scores"></div></div>
-      <div class="panel"><h2>Rounds</h2><div class="hist" id="hist"></div></div>
-      <div class="panel"><h2>Table talk</h2><div class="log" id="log"></div></div>
+      <div class="panel"><h2>Manches</h2><div class="hist" id="hist"></div></div>
+      <div class="panel"><h2>Déroulement</h2><div class="log" id="log"></div></div>
     </aside>
   </div>
 </div>
 
 <dialog id="newDlg"><form class="dlg" method="dialog" id="newForm">
-  <h3>New game</h3>
-  <div class="field"><label for="ngName">Your name</label><input id="ngName" maxlength="14" value="You"></div>
-  <div class="field"><label for="ngMax">Most cards</label><select id="ngMax"><option value="3">3 (7 rounds, quick)</option><option value="5">5 (9 rounds)</option><option value="7" selected>7 (13 rounds)</option><option value="10">10 (19 rounds)</option><option value="13">13 (25 rounds, full deck)</option></select></div>
-  <div class="field"><label for="ngSched">Order</label><select id="ngSched"><option value="up-down">1 up to most, back to 1</option><option value="down-up">Most down to 1, back up</option></select></div>
-  <div class="row"><button class="btn" value="cancel" id="ngCancel">Cancel</button><button class="btn primary" value="ok" id="ngGo">Deal</button></div>
+  <h3>Nouvelle partie</h3>
+  <div class="field"><label for="ngName">Votre nom</label><input id="ngName" maxlength="14" value="Vous"></div>
+  <div class="field"><label for="ngMax">Cartes au maximum</label><select id="ngMax"><option value="3">3 (7 manches, rapide)</option><option value="5">5 (9 manches)</option><option value="7" selected>7 (13 manches)</option><option value="10">10 (19 manches)</option><option value="13">13 (25 manches, jeu complet)</option></select></div>
+  <div class="field"><label for="ngSched">Ordre</label><select id="ngSched"><option value="up-down">De 1 au maximum, puis retour à 1</option><option value="down-up">Du maximum à 1, puis remontée</option></select></div>
+  <div class="row"><button class="btn" value="cancel" id="ngCancel">Annuler</button><button class="btn primary" value="ok" id="ngGo">Distribuer</button></div>
 </form></dialog>
 
 <dialog id="rulesDlg"><form class="dlg" method="dialog">
-  <h3>How Rikiki works</h3>
+  <h3>Comment jouer au Rikiki</h3>
   <div class="rules">
-    <p>Each round everybody gets the same number of cards: 1, then 2, up to the maximum and back down. The next card of the deck is turned up and its suit is <b>trump</b>. When the whole deck is dealt there is no trump.</p>
-    <p><b>Bidding.</b> Starting left of the dealer, each player says how many tricks they will take. The dealer bids last and may not make the bids add up to the number of tricks, so somebody has to miss.</p>
-    <p><b>Playing.</b> The player left of the dealer leads. Follow the led suit if you can, otherwise play anything. The highest trump wins the trick, otherwise the highest card of the led suit. The winner leads the next trick.</p>
-    <p><b>Scoring.</b> Exactly right: <b>5 points + 3 per trick</b>. Wrong: <b>&minus;2 per trick</b> you are off.</p>
-    <p><b>Coach</b> shows the AI's estimate of your points this round for every bid or card you can play. It uses the same network as your opponents, from your seat.</p>
+    <p>À chaque manche, tout le monde reçoit le même nombre de cartes : 1, puis 2, jusqu'au maximum, puis on redescend. La carte suivante du paquet est retournée : c'est la <b>carte d'atout</b>, et sa couleur est l'<b>atout</b>. Quand tout le paquet est distribué, il n'y a pas d'atout.</p>
+    <p><b>Annonces.</b> En commençant à gauche du donneur, chaque joueur annonce combien de <b>plis</b> il va faire. Le donneur annonce en dernier et ne peut pas rendre le total des annonces égal au nombre de plis : quelqu'un doit donc se tromper.</p>
+    <p><b>Le jeu.</b> Le joueur à gauche du donneur entame. Il faut fournir (jouer la couleur demandée) si on le peut, sinon on joue n'importe quelle carte. Le plus gros atout remporte le pli, sinon la plus haute carte de la couleur demandée. Celui qui remporte le pli entame le suivant.</p>
+    <p><b>Points.</b> Annonce exacte : <b>5 points + 3 par pli</b>. Annonce ratée : <b>&minus;2 par pli</b> d'écart.</p>
+    <p>Le <b>Coach</b> montre, pour chaque annonce ou carte possible, combien de points l'IA pense que vous marquerez cette manche. Il utilise le même réseau que vos adversaires, depuis votre place.</p>
   </div>
-  <div class="row"><button class="btn primary" value="ok">Got it</button></div>
+  <div class="row"><button class="btn primary" value="ok">Compris</button></div>
 </form></dialog>
 
 <script src="rikiki_core.js"></script>
 <script>
 const R = window.Rikiki;
 const $ = (id) => document.getElementById(id);
-const SUITS = ["♣", "♦", "♥", "♠"], SUIT_NAMES = ["clubs", "diamonds", "hearts", "spades"];
-const RANKS = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+const SUITS = ["♣", "♦", "♥", "♠"], SUIT_NAMES = ["trèfle", "carreau", "cœur", "pique"];
+const RANKS = ["2","3","4","5","6","7","8","9","10","V","D","R","A"];
+const RANK_NAMES = ["2","3","4","5","6","7","8","9","10","Valet","Dame","Roi","As"];
+const cname = (c) => `${RANK_NAMES[R.rankOf(c)]} de ${SUIT_NAMES[R.suitOf(c)]}`;
+const pl = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+const num = (s) => s.replace(".", ",");
 const ctext = (c) => RANKS[R.rankOf(c)] + SUITS[R.suitOf(c)];
-const cardHTML = (c, cls = "", attrs = "") => `<span class="pc ${R.suitOf(c) === 1 || R.suitOf(c) === 2 ? "red" : ""} ${cls}" ${attrs} title="${RANKS[R.rankOf(c)]} of ${SUIT_NAMES[R.suitOf(c)]}">${RANKS[R.rankOf(c)]}<br>${SUITS[R.suitOf(c)]}</span>`;
-const sgn = (v, d = 1) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+const cardHTML = (c, cls = "", attrs = "") => `<span class="pc ${R.suitOf(c) === 1 || R.suitOf(c) === 2 ? "red" : ""} ${cls}" ${attrs} title="${cname(c)}">${RANKS[R.rankOf(c)]}<br>${SUITS[R.suitOf(c)]}</span>`;
+const sgn = (v, d = 1) => (v > 0 ? "+" : v < 0 ? "−" : "") + num(Math.abs(v).toFixed(d));
 const sgnI = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v);
 const AI_NAMES = ["Lies", "Bram", "Wout"];  // West, North, East
 const RULES = R.DEFAULT_RULES;
-const STORE = "rikiki_vs_ai_v1";
+const STORE = "rikiki_vs_ai_fr_v1";
 
 let net = null, netError = null, G = null, timer = null;
 
 // ------------------------------------------------------------- game state
 function newGame(opts) {
   const maxCards = +opts.maxCards || 7, schedule = opts.schedule || "up-down";
-  G = { names: [opts.name || "You", ...AI_NAMES], maxCards, schedule, sizes: R.roundSizes(maxCards, schedule),
+  G = { names: [opts.name || "Vous", ...AI_NAMES], maxCards, schedule, sizes: R.roundSizes(maxCards, schedule),
         roundIdx: -1, dealer: Math.floor(Math.random() * 4) - 1, totals: [0, 0, 0, 0], history: [], round: null, pause: null, log: [] };
   nextRound();
 }
@@ -234,7 +239,7 @@ function nextRound() {
   G.round = new R.Round(RULES, G.sizes[G.roundIdx], G.dealer, Math.random);
   G.pause = null;
   const r = G.round;
-  say(`Round ${G.roundIdx + 1} of ${G.sizes.length}: ${r.nCards} card${r.nCards > 1 ? "s" : ""}, ${G.names[r.dealer]} deals, ${r.trumpCard == null ? "no trump" : "trump card " + ctext(r.trumpCard)}.`);
+  say(`Manche ${G.roundIdx + 1} sur ${G.sizes.length} : ${pl(r.nCards, "carte")}, ${r.dealer === 0 ? "vous distribuez" : G.names[r.dealer] + " distribue"}, ${r.trumpCard == null ? "pas d'atout" : "carte d'atout " + ctext(r.trumpCard)}.`);
 }
 function say(t) { G.log.push(t); if (G.log.length > 80) G.log.shift(); }
 function save() { try { localStorage.setItem(STORE, JSON.stringify({ ...G, round: G.round.toState() })); } catch (e) {} }
@@ -248,14 +253,14 @@ function restore(s) {
 function afterPlay(winner) {
   const r = G.round;
   if (winner != null) {
-    say(`${G.names[winner]} take${winner === 0 && G.names[0] === "You" ? "" : "s"} the trick with ${ctext(r.lastTrick.find(([p]) => p === winner)[1])}.`);
+    say(`${winner === 0 ? "Vous remportez" : G.names[winner] + " remporte"} le pli avec ${ctext(r.lastTrick.find(([p]) => p === winner)[1])}.`);
     G.pause = "trick";
   }
   if (r.phase === "done") {
     const sc = r.scores();
     sc.forEach((s, p) => G.totals[p] += s);
     G.history.push({ n: r.nCards, bids: r.bids.slice(), won: r.tricksWon.slice(), scores: sc });
-    say("Round over: " + sc.map((s, p) => `${G.names[p]} ${sgnI(s)}`).join(", ") + ".");
+    say("Fin de la manche : " + sc.map((s, p) => `${G.names[p]} ${sgnI(s)}`).join(", ") + ".");
   }
 }
 
@@ -275,15 +280,15 @@ function aiMove() {
   const r = G.round, p = r.current;
   if (G.pause || p === 0 || !net) return;
   const { action } = net.choose(r, p);
-  if (r.phase === "bid") { r.bid(action); say(`${G.names[p]} bids ${action}.`); afterPlay(null); }
+  if (r.phase === "bid") { r.bid(action); say(`${G.names[p]} annonce ${pl(action, "pli")}.`); afterPlay(null); }
   else afterPlay(r.play(action));
   tick();
 }
 function tick() { save(); render(); schedule(); }
-function humanBid(v) { const r = G.round; if (G.pause || r.current !== 0 || r.phase !== "bid") return; r.bid(v); say(`${G.names[0]} bid${G.names[0] === "You" ? "" : "s"} ${v}.`); tick(); }
+function humanBid(v) { const r = G.round; if (G.pause || r.current !== 0 || r.phase !== "bid") return; r.bid(v); say(`Vous annoncez ${pl(v, "pli")}.`); tick(); }
 function humanPlay(c) {
   const r = G.round; if (G.pause || r.current !== 0 || r.phase !== "play") return;
-  if (!r.legalCards(0).includes(c)) { $("err").textContent = `You must follow ${SUIT_NAMES[r.leadSuit]} when you can.`; return; }
+  if (!r.legalCards(0).includes(c)) { $("err").textContent = `Vous devez fournir à ${SUIT_NAMES[r.leadSuit]} si vous le pouvez.`; return; }
   $("err").textContent = ""; afterPlay(r.play(c)); tick();
 }
 function continueRound() { if (G.pause === "round") { nextRound(); tick(); } }
@@ -293,30 +298,30 @@ function render() {
   const r = G.round, myTurn = !G.pause && r.current === 0 && r.phase !== "done";
   const showTrick = G.pause && r.lastTrick && (G.pause === "trick" || G.pause === "round" || G.pause === "over") ? r.lastTrick : r.trick;
   const winner = G.pause && r.lastTrick ? r.lastTrickWinner : null;
-  let h = `<div class="trump">Trump${r.trumpCard == null ? `<span class="none">None</span>` : cardHTML(r.trumpCard)}</div>`;
-  h += `<div class="roundinfo">Round ${G.roundIdx + 1} of ${G.sizes.length}<b>${r.nCards} card${r.nCards > 1 ? "s" : ""}</b></div>`;
+  let h = `<div class="trump">Atout${r.trumpCard == null ? `<span class="none">Aucun</span>` : cardHTML(r.trumpCard)}</div>`;
+  h += `<div class="roundinfo">Manche ${G.roundIdx + 1} sur ${G.sizes.length}<b>${pl(r.nCards, "carte")}</b></div>`;
   for (let p = 0; p < 4; p++) {
     const turn = !G.pause && r.current === p && r.phase !== "done";
     const bid = r.bids[p] == null ? "&ndash;" : r.bids[p];
-    h += `<div class="seat s${p}"><span class="chip ${p === 0 ? "you" : ""} ${turn ? "turn" : ""}">${G.names[p]}<span class="tag">${p === 0 ? "you" : "AI"}</span>${r.dealer === p ? `<span class="dealer" title="Dealer">D</span>` : ""}</span>
-      <span class="stat">bid <b>${bid}</b> &middot; won <b>${r.tricksWon[p]}</b> &middot; ${G.totals[p]} pts</span>
-      ${p === 0 ? "" : `<div class="backs" aria-label="${r.hands[p].length} cards">${r.hands[p].map(() => `<span class="back"></span>`).join("")}</div><div class="thinking">${turn && net ? "thinking…" : ""}</div>`}</div>`;
+    h += `<div class="seat s${p}"><span class="chip ${p === 0 ? "you" : ""} ${turn ? "turn" : ""}">${G.names[p]}<span class="tag">${p === 0 ? "vous" : "IA"}</span>${r.dealer === p ? `<span class="dealer" title="Donneur">D</span>` : ""}</span>
+      <span class="stat">annonce <b>${bid}</b> &middot; plis <b>${r.tricksWon[p]}</b> &middot; ${G.totals[p]} pts</span>
+      ${p === 0 ? "" : `<div class="backs" aria-label="${pl(r.hands[p].length, "carte")}">${r.hands[p].map(() => `<span class="back"></span>`).join("")}</div><div class="thinking">${turn && net ? "réfléchit…" : ""}</div>`}</div>`;
   }
   h += `<div class="trickzone">${showTrick.map(([p, c]) => `<div class="tc p${p} ${winner === p ? "win" : ""}">${cardHTML(c)}</div>`).join("")}</div>`;
   if (G.pause === "round" || G.pause === "over") {
     const last = G.history[G.history.length - 1];
     const order = [0, 1, 2, 3].sort((a, b) => G.totals[b] - G.totals[a]);
     const over = G.pause === "over";
-    let title = over ? "Game over" : `Round ${G.roundIdx + 1} done`;
-    if (over) { const top = G.totals[order[0]]; const ws = order.filter((p) => G.totals[p] === top).map((p) => G.names[p]); title = ws.includes(G.names[0]) && ws.length === 1 ? "You win!" : `${ws.join(" & ")} win${ws.length > 1 ? "" : "s"}`; }
-    h += `<div class="overlay" role="dialog" aria-label="${title}"><h3>${title}</h3><table><tr><th>Player</th><th>Bid</th><th>Won</th><th>Round</th><th>Total</th></tr>` +
+    let title = over ? "Partie terminée" : `Manche ${G.roundIdx + 1} terminée`;
+    if (over) { const top = G.totals[order[0]]; const ws = order.filter((p) => G.totals[p] === top).map((p) => G.names[p]); title = ws.includes(G.names[0]) && ws.length === 1 ? "Vous gagnez !" : `${ws.map((n) => n === G.names[0] ? "Vous" : n).join(" et ")} ${ws.includes(G.names[0]) ? "gagnez" : ws.length > 1 ? "gagnent" : "gagne"}`; }
+    h += `<div class="overlay" role="dialog" aria-label="${title}"><h3>${title}</h3><table><tr><th>Joueur</th><th>Annonce</th><th>Plis</th><th>Manche</th><th>Total</th></tr>` +
       order.map((p) => `<tr><td>${G.names[p]}</td><td>${last.bids[p]}</td><td>${last.won[p]}</td><td class="${last.scores[p] > 0 ? "pos" : "neg"}">${sgnI(last.scores[p])}</td><td><b>${G.totals[p]}</b></td></tr>`).join("") +
-      `</table><button class="btn" id="ovBtn">${over ? "Play again" : "Next round"}</button></div>`;
+      `</table><button class="btn" id="ovBtn">${over ? "Rejouer" : "Manche suivante"}</button></div>`;
   } else if (!showTrick.length) {
     const sum = r.bids.reduce((s, b) => s + (b ?? 0), 0);
-    h += `<div class="center-msg">${r.phase === "bid" ? `Bidding: ${sum} of ${r.nCards} trick${r.nCards > 1 ? "s" : ""} bid` : `${r.tricksWon.reduce((a, b) => a + b, 0)} of ${r.nCards} tricks played`}</div>`;
+    h += `<div class="center-msg">${r.phase === "bid" ? `Annonces : ${sum} sur ${pl(r.nCards, "pli")}` : `${r.tricksWon.reduce((a, b) => a + b, 0)} sur ${pl(r.nCards, "pli")} joués`}</div>`;
   }
-  if (!net) h += `<div class="loading">${netError ? "Could not load the AI: " + netError : "Loading the AI (3 MB)…"}</div>`;
+  if (!net) h += `<div class="loading">${netError ? "Impossible de charger l'IA : " + netError : "Chargement de l'IA (3 Mo)…"}</div>`;
   $("table").innerHTML = h;
   const ov = $("ovBtn"); if (ov) ov.onclick = () => G.pause === "over" ? openNew() : continueRound();
 
@@ -328,16 +333,16 @@ function render() {
 
   // --- tray: message, bids, hand
   let msg = "";
-  if (G.pause === "trick") msg = `${G.names[winner]} ${winner === 0 && G.names[0] === "You" ? "take" : "takes"} the trick.`;
-  else if (G.pause === "round") msg = "Round over.";
-  else if (G.pause === "over") msg = "Game over.";
-  else if (!myTurn) msg = `${G.names[r.current]} is ${r.phase === "bid" ? "bidding" : "playing"}…`;
+  if (G.pause === "trick") msg = winner === 0 ? "Vous remportez le pli." : `${G.names[winner]} remporte le pli.`;
+  else if (G.pause === "round") msg = "Manche terminée.";
+  else if (G.pause === "over") msg = "Partie terminée.";
+  else if (!myTurn) msg = `${G.names[r.current]} ${r.phase === "bid" ? "réfléchit à son annonce" : "joue"}…`;
   else if (r.phase === "bid") {
     const sum = r.bids.reduce((s, b) => s + (b ?? 0), 0), f = r.forbiddenBid();
-    msg = `How many tricks will you take? <small>Bids so far: ${sum} of ${r.nCards}.${f != null ? ` As dealer you may not bid ${f}.` : ""}</small>`;
+    msg = `Combien de plis allez-vous faire ? <small>Annonces jusqu'ici : ${sum} sur ${r.nCards}.${f != null ? ` Comme donneur, vous ne pouvez pas annoncer ${f}.` : ""}</small>`;
   } else {
     const need = r.bids[0] - r.tricksWon[0];
-    msg = `Your card. <small>${need > 0 ? `You need ${need} more trick${need > 1 ? "s" : ""}.` : need === 0 ? "You have your tricks: try to lose the rest." : `You are ${-need} over your bid.`}</small>`;
+    msg = `À vous de jouer. <small>${need > 0 ? `Il vous faut encore ${pl(need, "pli")}.` : need === 0 ? "Vous avez vos plis : essayez de perdre les autres." : `Vous avez ${pl(-need, "pli")} de trop.`}</small>`;
   }
   $("msg").innerHTML = msg;
   $("bids").innerHTML = myTurn && r.phase === "bid" ? [...Array(r.nCards + 1).keys()].map((b) =>
@@ -347,7 +352,7 @@ function render() {
   $("hand").innerHTML = r.hands[0].map((c) => {
     const ok = playable && legal.includes(c);
     const hint = q && r.phase === "play" && ok ? `<span class="hint ${c === best ? "best" : ""}">${sgn(q[c])}</span>` : "";
-    return cardHTML(c, ok ? "legal" : (playable ? "dim" : ""), ok ? `role="button" tabindex="0" data-card="${c}" aria-label="Play ${RANKS[R.rankOf(c)]} of ${SUIT_NAMES[R.suitOf(c)]}"` : "").replace("</span>", hint + "</span>");
+    return cardHTML(c, ok ? "legal" : (playable ? "dim" : ""), ok ? `role="button" tabindex="0" data-card="${c}" aria-label="Jouer ${cname(c)}"` : "").replace("</span>", hint + "</span>");
   }).join("");
   document.querySelectorAll("[data-card]").forEach((el) => {
     el.onclick = () => humanPlay(+el.dataset.card);
@@ -356,39 +361,39 @@ function render() {
 
   // --- coach panel
   let ch = `<h2>Coach</h2>`;
-  if (!$("hints").checked) ch += `<p class="quiet">Switch on <b>Coach</b> to see how many points the AI expects you to score this round with each bid or card. It uses the same network as your opponents.</p>`;
-  else if (!net) ch += `<p class="quiet">Loading the AI…</p>`;
-  else if (!q) ch += `<p class="quiet">The coach speaks up when it is your turn.</p>`;
+  if (!$("hints").checked) ch += `<p class="quiet">Activez le <b>Coach</b> pour voir combien de points l'IA pense que vous marquerez cette manche avec chaque annonce ou carte. Il utilise le même réseau que vos adversaires.</p>`;
+  else if (!net) ch += `<p class="quiet">Chargement de l'IA…</p>`;
+  else if (!q) ch += `<p class="quiet">Le coach intervient quand c'est à vous de jouer.</p>`;
   else {
     const opts = legal.map((a) => [a, q[a]]);
     if (r.phase === "play") opts.sort((a, b) => b[1] - a[1]);
     const lo = Math.min(0, ...opts.map((o) => o[1])), hi = Math.max(0.5, ...opts.map((o) => o[1]));
     const X = (v) => (v - lo) / (hi - lo) * 100;
-    ch += `<p class="quiet">Best ${r.phase === "bid" ? "bid" : "card"}: <b>${r.phase === "bid" ? best : ctext(best)}</b>, expected <b>${sgn(q[best])}</b> points this round.</p><div class="opts">` + opts.map(([a, v]) => {
+    ch += `<p class="quiet">${r.phase === "bid" ? "Meilleure annonce" : "Meilleure carte"} : <b>${r.phase === "bid" ? best : ctext(best)}</b>, gain attendu <b>${sgn(q[best])}</b> points cette manche.</p><div class="opts">` + opts.map(([a, v]) => {
       const z = X(0), w = Math.abs(X(v) - z);
       const bar = v >= 0 ? `<i class="p" style="left:${z}%;width:${Math.max(w, 1)}%"></i>` : `<i class="n" style="left:${z - w}%;width:${Math.max(w, 1)}%"></i>`;
       return `<div class="opt ${a === best ? "best" : ""}"><span class="lab">${r.phase === "bid" ? a : cardHTML(a)}</span><span class="track"><span class="zero" style="left:${z}%"></span>${bar}</span><span class="v">${sgn(v)}</span></div>`;
-    }).join("") + `</div><p class="note">Estimates from the AI's point of view. It cannot see the other hands either.</p>`;
+    }).join("") + `</div><p class="note">Estimations du point de vue de l'IA, qui ne voit pas non plus les autres mains.</p>`;
   }
   $("coach").innerHTML = ch;
 
   // --- scores, history, log
   const order = [0, 1, 2, 3].sort((a, b) => G.totals[b] - G.totals[a]);
-  $("scores").innerHTML = `<table class="sc"><tr><th>Player</th><th>Bid</th><th>Won</th><th>Total</th></tr>` + order.map((p) =>
+  $("scores").innerHTML = `<table class="sc"><tr><th>Joueur</th><th>Annonce</th><th>Plis</th><th>Total</th></tr>` + order.map((p) =>
     `<tr><td>${p === 0 ? `<b>${G.names[p]}</b>` : G.names[p]}</td><td>${r.bids[p] ?? "&ndash;"}</td><td>${r.tricksWon[p]}</td><td><b>${G.totals[p]}</b></td></tr>`).join("") + `</table>`;
   $("hist").innerHTML = G.history.length ? `<table class="sc"><tr><th>#</th>${G.names.map((n) => `<th>${n.slice(0, 6)}</th>`).join("")}</tr>` + G.history.map((hh, i) =>
-    `<tr><td>${i + 1} <span class="note">(${hh.n})</span></td>${hh.scores.map((s, p) => `<td title="bid ${hh.bids[p]}, won ${hh.won[p]}"><span class="${s > 0 ? "pos" : "neg"}">${sgnI(s)}</span></td>`).join("")}</tr>`).join("") + `</table>`
-    : `<p class="quiet">Finished rounds appear here.</p>`;
+    `<tr><td>${i + 1} <span class="note">(${hh.n})</span></td>${hh.scores.map((s, p) => `<td title="annonce ${hh.bids[p]}, plis ${hh.won[p]}"><span class="${s > 0 ? "pos" : "neg"}">${sgnI(s)}</span></td>`).join("")}</tr>`).join("") + `</table>`
+    : `<p class="quiet">Les manches terminées s'affichent ici.</p>`;
   const log = $("log"); log.innerHTML = G.log.map((l) => `<div>${l}</div>`).join(""); log.scrollTop = log.scrollHeight;
 }
 
 // ------------------------------------------------------------- dialogs & controls
-function openNew() { clearTimeout(timer); $("ngName").value = G ? G.names[0] : "You"; $("newDlg").showModal(); }
+function openNew() { clearTimeout(timer); $("ngName").value = G ? G.names[0] : "Vous"; $("newDlg").showModal(); }
 $("newForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const ok = e.submitter && e.submitter.id === "ngGo";
   $("newDlg").close();
-  if (ok) { newGame({ name: $("ngName").value.trim() || "You", maxCards: $("ngMax").value, schedule: $("ngSched").value }); $("err").textContent = ""; }
+  if (ok) { newGame({ name: $("ngName").value.trim() || "Vous", maxCards: $("ngMax").value, schedule: $("ngSched").value }); $("err").textContent = ""; }
   tick();
 });
 $("newDlg").addEventListener("cancel", () => setTimeout(schedule, 0));
@@ -408,9 +413,9 @@ function boot(hotData) {
   try { $("hints").checked = localStorage.getItem(STORE + "_coach") === "1"; const sp = localStorage.getItem(STORE + "_speed"); if (sp) $("speed").value = sp; } catch (e) {}
   let saved = hotData && hotData.G ? hotData.G : null;
   if (!saved) { try { saved = JSON.parse(localStorage.getItem(STORE) || "null"); } catch (e) { saved = null; } }
-  if (!(saved && saved.pause !== "over" && restore(saved))) newGame({ name: "You", maxCards: 7, schedule: "up-down" });
+  if (!(saved && saved.pause !== "over" && restore(saved))) newGame({ name: "Vous", maxCards: 7, schedule: "up-down" });
   render();
-  Promise.all([fetch("weights_manifest.json").then((r) => r.json()), fetch("weights_f16.txt").then((r) => { if (!r.ok) throw new Error("weights file returned " + r.status); return r.text(); }).then(b64ToBuffer)])
+  Promise.all([fetch("weights_manifest.json").then((r) => r.json()), fetch("weights_f16.txt").then((r) => { if (!r.ok) throw new Error("fichier des poids, erreur " + r.status); return r.text(); }).then(b64ToBuffer)])
     .then(([m, buf]) => { net = new R.Net(m, buf); render(); schedule(); })
     .catch((e) => { netError = String(e.message || e); render(); });
 }
